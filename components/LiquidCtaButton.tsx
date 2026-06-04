@@ -7,20 +7,40 @@ type LiquidCtaButtonProps = {
   ariaLabel?: string;
   children: ReactNode;
   className?: string;
-  href: string;
+  external?: boolean;
+  href?: string;
+  onClick?: () => void;
   size?: "default" | "sm" | "lg" | "xl" | "xxl" | "icon";
+  type?: "button" | "submit";
 };
 
 export function LiquidCtaButton({
   ariaLabel,
   children,
   className,
+  external = false,
   href,
-  size = "xl"
+  onClick,
+  size = "xl",
+  type = "button"
 }: LiquidCtaButtonProps) {
   const handleClick = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+
+    if (!href) {
+      return;
+    }
+
     if (href.startsWith("#")) {
       document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    if (external) {
+      window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
 
@@ -33,7 +53,7 @@ export function LiquidCtaButton({
       className={className}
       onClick={handleClick}
       size={size}
-      type="button"
+      type={type}
     >
       {children}
     </LiquidButton>

@@ -39,6 +39,13 @@ export default function RootLayout({
       lang="en"
       className={cn("dark", displayFont.variable, bodyFont.variable)}
     >
+      <head>
+        <link rel="preload" as="image" href="/sequence/frame_001.webp" />
+        <link rel="preload" as="image" href="/sequence/frame_002.webp" />
+        <link rel="preload" as="image" href="/sequence/frame_003.webp" />
+        <link rel="preload" as="image" href="/sequence/frame_004.webp" />
+        <link rel="preload" as="image" href="/sequence/frame_005.webp" />
+      </head>
       <body>{children}</body>
     </html>
   );

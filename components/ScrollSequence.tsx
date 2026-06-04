@@ -10,7 +10,7 @@ import {
   type MotionValue
 } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LiquidCtaButton } from "@/components/LiquidCtaButton";
+import { SiteButton } from "@/components/SiteButton";
 
 export type StoryBeat = {
   eyebrow?: string;
@@ -36,7 +36,6 @@ type ScrollSequenceProps = {
 
 const FRAME_COUNT = 60;
 const FIT_MODE: FitMode = "cover";
-const MIN_READY_FRAMES = 8;
 const TARGET_FPS = 120;
 const POSITION_EPSILON = 1 / TARGET_FPS;
 const FRAME_PLAYBACK_END = 0.92;
@@ -46,7 +45,29 @@ const MOBILE_CUP_SHIFT_X = -12;
 const STABLE_VH_PROPERTY = "--stable-vh";
 
 const defaultGetFrameSrc = (index: number) =>
-  `/sequence/frame_${String(index + 1).padStart(3, "0")}.jpg`;
+  `/sequence/frame_${String(index + 1).padStart(3, "0")}.webp`;
+
+function preloadFrame(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.decoding = "async";
+    image.loading = "eager";
+    image.onload = async () => {
+      try {
+        await image.decode();
+      } catch {
+        // Some browsers can reject decode() after a successful load.
+      }
+
+      resolve(image);
+    };
+    image.onerror = () => {
+      reject(new Error(`Failed to preload sequence frame: ${src}`));
+    };
+    image.src = src;
+  });
+}
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
@@ -209,13 +230,12 @@ function BeatOverlay({
             {beat.subtitle}
           </p>
           {beat.ctaHref && beat.ctaLabel ? (
-            <LiquidCtaButton
+            <SiteButton
+              className="mt-8"
               href={beat.ctaHref}
-              size="xl"
-              className="pointer-events-auto relative z-30 mt-8 rounded-full px-8 py-4 font-body text-sm font-semibold text-white/90 backdrop-blur-md"
             >
               {beat.ctaLabel}
-            </LiquidCtaButton>
+            </SiteButton>
           ) : null}
         </div>
       </div>
@@ -331,9 +351,9 @@ export default function ScrollSequence({
   const rafRef = useRef<number | null>(null);
   const lastViewportWidthRef = useRef(0);
   const orientationResizeTimeoutRef = useRef<number | null>(null);
-  const mountedRef = useRef(false);
   const [loadedFrames, setLoadedFrames] = useState(0);
   const [firstFrameReady, setFirstFrameReady] = useState(false);
+  const [framesReady, setFramesReady] = useState(false);
   const reducedMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
@@ -349,7 +369,7 @@ export default function ScrollSequence({
   });
 
   const progress = reducedMotion ? scrollYProgress : smoothProgress;
-  const isReady = firstFrameReady && loadedFrames >= Math.min(MIN_READY_FRAMES, frameCount);
+  const isReady = framesReady;
   const loadProgress = Math.round((loadedFrames / frameCount) * 100);
   const sceneTwoBeat = beats[1];
 
@@ -474,48 +494,53 @@ export default function ScrollSequence({
   }, [render]);
 
   useEffect(() => {
-    mountedRef.current = true;
+    let cancelled = false;
+
     framesRef.current = new Array(frameCount);
     currentPositionRef.current = -1;
     pendingPositionRef.current = 0;
     setLoadedFrames(0);
     setFirstFrameReady(false);
-
-    const firstFrame = new Image();
-    firstFrame.decoding = "async";
-    firstFrame.src = frameSources[0];
-    framesRef.current[0] = firstFrame;
-
-    firstFrame.onload = () => {
-      if (!mountedRef.current) {
-        return;
-      }
-
-      setLoadedFrames((count) => Math.max(count, 1));
-      setFirstFrameReady(true);
-      render(0, true);
-    };
-
-    const remainingFrames = frameSources.slice(1).map((src, offset) => {
-      const image = new Image();
-      const index = offset + 1;
-      image.decoding = "async";
-      image.src = src;
-      framesRef.current[index] = image;
-
-      image.onload = () => {
-        if (!mountedRef.current) {
-          return;
-        }
-
-        setLoadedFrames((count) => count + 1);
-      };
-
-      return image;
-    });
+    setFramesReady(false);
 
     resizeCanvas();
     lastViewportWidthRef.current = window.innerWidth;
+
+    const loadFrames = async () => {
+      try {
+        const firstFrame = await preloadFrame(frameSources[0]);
+
+        if (cancelled) {
+          return;
+        }
+
+        framesRef.current[0] = firstFrame;
+        setLoadedFrames(1);
+        setFirstFrameReady(true);
+        render(0, true);
+
+        await Promise.all(
+          frameSources.slice(1).map(async (src, offset) => {
+            const image = await preloadFrame(src);
+
+            if (!cancelled) {
+              framesRef.current[offset + 1] = image;
+              setLoadedFrames((count) => Math.min(frameCount, count + 1));
+            }
+          })
+        );
+
+        if (!cancelled) {
+          setFramesReady(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setFramesReady(false);
+        }
+      }
+    };
+
+    loadFrames();
 
     const handleResize = () => {
       const nextWidth = window.innerWidth;
@@ -548,11 +573,7 @@ export default function ScrollSequence({
     window.addEventListener("orientationchange", handleOrientationChange);
 
     return () => {
-      mountedRef.current = false;
-      firstFrame.onload = null;
-      remainingFrames.forEach((image) => {
-        image.onload = null;
-      });
+      cancelled = true;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleOrientationChange);
 
@@ -599,7 +620,7 @@ export default function ScrollSequence({
           ref={canvasRef}
           aria-hidden="true"
           className={`absolute inset-0 z-0 h-[var(--stable-vh)] w-screen bg-[#050505] transition-opacity duration-700 ${
-            isReady ? "opacity-100" : "opacity-0"
+            firstFrameReady ? "opacity-100" : "opacity-0"
           }`}
         />
 

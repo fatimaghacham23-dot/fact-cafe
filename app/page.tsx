@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import ScrollSequence, { type StoryBeat } from "@/components/ScrollSequence";
 import { FactArcSignature } from "@/components/FactArcSignature";
 import { FluidNav } from "@/components/FluidNav";
 import { HeroTypewriterLine } from "@/components/HeroTypewriterLine";
+import { SiteButton } from "@/components/SiteButton";
 import { GradientBackground } from "@/components/paper-design-shader-background";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { HandDrawnOval } from "@/components/ui/hand-writing-text";
@@ -67,36 +67,6 @@ const storyBeats: StoryBeat[] = [
 const heroMorphTexts = ["Coffee", "Kuwait", "Boutique"];
 const finishMorphTexts = ["daily.", "weekends.", "coffee."];
 
-function GlassLink({
-  ariaLabel,
-  children,
-  href,
-  external = false,
-  variant = "primary"
-}: {
-  ariaLabel?: string;
-  children: ReactNode;
-  external?: boolean;
-  href: string;
-  variant?: "primary" | "secondary";
-}) {
-  return (
-    <a
-      aria-label={ariaLabel}
-      className={`inline-flex h-12 items-center justify-center rounded-full border px-6 font-body text-sm font-semibold transition duration-300 ${
-        variant === "primary"
-          ? "border-white/20 bg-white/15 text-white shadow-[0_18px_60px_rgba(255,255,255,0.08)] backdrop-blur-md hover:bg-white/20"
-          : "border-white/10 bg-black/20 text-white/70 backdrop-blur-md hover:border-white/20 hover:text-white"
-      }`}
-      href={href}
-      rel={external ? "noopener noreferrer" : undefined}
-      target={external ? "_blank" : undefined}
-    >
-      {children}
-    </a>
-  );
-}
-
 export default function Page() {
   return (
     <main className="min-h-screen bg-[#050505] font-body text-white">
@@ -141,16 +111,16 @@ export default function Page() {
             mornings, focused afternoons, and late weekend pours.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <GlassLink
+            <SiteButton
               ariaLabel="Open FACT SPECIALITY COFFEE menu on Instagram"
               external
               href={instagramUrl}
             >
               View Menu
-            </GlassLink>
-            <GlassLink href="#visit" variant="secondary">
+            </SiteButton>
+            <SiteButton href="#visit">
               Find Us
-            </GlassLink>
+            </SiteButton>
           </div>
         </div>
         <HeroTypewriterLine />
@@ -232,13 +202,13 @@ export default function Page() {
               directly on Instagram.
             </p>
           </div>
-          <GlassLink
+          <SiteButton
             ariaLabel="Open FACT SPECIALITY COFFEE Instagram"
             external
             href={instagramUrl}
           >
             Open @fact.kwt
-          </GlassLink>
+          </SiteButton>
         </div>
       </section>
 
@@ -277,13 +247,13 @@ export default function Page() {
               with cozy energy, modern payments, and late weekend hours.
             </p>
             <div className="mt-8">
-              <GlassLink
+              <SiteButton
                 ariaLabel="Visit FACT SPECIALITY COFFEE on Instagram"
                 external
                 href={instagramUrl}
               >
                 Visit Instagram
-              </GlassLink>
+              </SiteButton>
             </div>
             <p className="mt-5 font-body text-sm text-white/40">
               Open daily from 8:00 AM.
