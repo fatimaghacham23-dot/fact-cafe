@@ -2,7 +2,7 @@
 
 import {
   motion,
-  useMotionValueEvent,
+  useAnimationFrame,
   useReducedMotion,
   useScroll,
   useSpring,
@@ -36,9 +36,8 @@ type ScrollSequenceProps = {
 
 const FRAME_COUNT = 60;
 const FIT_MODE: FitMode = "cover";
-const TARGET_FPS = 120;
-const POSITION_EPSILON = 1 / TARGET_FPS;
 const FRAME_PLAYBACK_END = 0.92;
+const PRIORITY_FRAME_COUNT = 8;
 const PHONE_BREAKPOINT = 640;
 const MOBILE_CUP_SCALE = 0.9;
 const MOBILE_CUP_SHIFT_X = -12;
@@ -47,12 +46,22 @@ const STABLE_VH_PROPERTY = "--stable-vh";
 const defaultGetFrameSrc = (index: number) =>
   `/sequence/frame_${String(index + 1).padStart(3, "0")}.webp`;
 
-function preloadFrame(src: string): Promise<HTMLImageElement> {
+function preloadFrame(src: string, priority = false): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
 
     image.decoding = "async";
-    image.loading = "eager";
+
+    if (priority) {
+      image.loading = "eager";
+    }
+
+    if ("fetchPriority" in image) {
+      (
+        image as HTMLImageElement & { fetchPriority: "auto" | "high" }
+      ).fetchPriority = priority ? "high" : "auto";
+    }
+
     image.onload = async () => {
       try {
         await image.decode();
@@ -75,6 +84,17 @@ function clamp(value: number, min = 0, max = 1) {
 
 function getFramePosition(progress: number, frameCount: number) {
   return clamp(progress / FRAME_PLAYBACK_END) * (frameCount - 1);
+}
+
+function isFrameDrawable(
+  image?: HTMLImageElement
+): image is HTMLImageElement {
+  return Boolean(
+    image &&
+      image.complete &&
+      image.naturalWidth > 0 &&
+      image.naturalHeight > 0
+  );
 }
 
 function getStableViewportHeight() {
@@ -347,13 +367,13 @@ export default function ScrollSequence({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const framesRef = useRef<Array<HTMLImageElement | undefined>>([]);
   const currentPositionRef = useRef(-1);
+  const currentFrameRef = useRef(-1);
   const pendingPositionRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
   const lastViewportWidthRef = useRef(0);
   const orientationResizeTimeoutRef = useRef<number | null>(null);
-  const [loadedFrames, setLoadedFrames] = useState(0);
+  const firstFrameReadyRef = useRef(false);
+  const loadedFramesRef = useRef<Set<number>>(new Set());
   const [firstFrameReady, setFirstFrameReady] = useState(false);
-  const [framesReady, setFramesReady] = useState(false);
   const reducedMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
@@ -369,13 +389,43 @@ export default function ScrollSequence({
   });
 
   const progress = reducedMotion ? scrollYProgress : smoothProgress;
-  const isReady = framesReady;
-  const loadProgress = Math.round((loadedFrames / frameCount) * 100);
   const sceneTwoBeat = beats[1];
 
   const frameSources = useMemo(
     () => Array.from({ length: frameCount }, (_, index) => getFrameSrc(index)),
     [frameCount, getFrameSrc]
+  );
+
+  const getNearestLoadedFrame = useCallback(
+    (targetIndex: number) => {
+      const clampedIndex = Math.min(
+        frameCount - 1,
+        Math.max(0, Math.round(targetIndex))
+      );
+
+      if (isFrameDrawable(framesRef.current[clampedIndex])) {
+        return clampedIndex;
+      }
+
+      for (let offset = 1; offset < frameCount; offset++) {
+        const previous = clampedIndex - offset;
+        const next = clampedIndex + offset;
+
+        if (
+          previous >= 0 &&
+          isFrameDrawable(framesRef.current[previous])
+        ) {
+          return previous;
+        }
+
+        if (next < frameCount && isFrameDrawable(framesRef.current[next])) {
+          return next;
+        }
+      }
+
+      return 0;
+    },
+    [frameCount]
   );
 
   useEffect(() => {
@@ -430,43 +480,33 @@ export default function ScrollSequence({
   const render = useCallback(
     (position: number, force = false) => {
       const canvas = canvasRef.current;
-      const nextPosition = clamp(position, 0, frameCount - 1);
-      const lowerIndex = Math.floor(nextPosition);
-      const frame = framesRef.current[lowerIndex];
+      const targetFrameIndex = Math.min(
+        frameCount - 1,
+        Math.max(0, Math.round(position))
+      );
 
-      if (!canvas || !frame || !frame.complete) {
+      pendingPositionRef.current = targetFrameIndex;
+
+      if (!canvas) {
         return;
       }
 
-      if (
-        !force &&
-        Math.abs(currentPositionRef.current - nextPosition) < POSITION_EPSILON
-      ) {
+      const safeFrameIndex = getNearestLoadedFrame(targetFrameIndex);
+      const frame = framesRef.current[safeFrameIndex];
+
+      if (!isFrameDrawable(frame)) {
         return;
       }
 
-      pendingPositionRef.current = nextPosition;
-
-      if (rafRef.current !== null) {
+      if (!force && safeFrameIndex === currentFrameRef.current) {
         return;
       }
 
-      rafRef.current = window.requestAnimationFrame(() => {
-        const framePosition = pendingPositionRef.current;
-        const baseIndex = Math.floor(framePosition);
-        const blend = framePosition - baseIndex;
-        const baseFrame = framesRef.current[baseIndex];
-        const nextFrame = framesRef.current[Math.min(frameCount - 1, baseIndex + 1)];
-
-        if (baseFrame?.complete) {
-          drawFrame(canvas, baseFrame, fitMode, nextFrame, blend);
-          currentPositionRef.current = framePosition;
-        }
-
-        rafRef.current = null;
-      });
+      currentFrameRef.current = safeFrameIndex;
+      currentPositionRef.current = safeFrameIndex;
+      drawFrame(canvas, frame, fitMode);
     },
-    [fitMode, frameCount]
+    [fitMode, frameCount, getNearestLoadedFrame]
   );
 
   const resizeCanvas = useCallback(() => {
@@ -495,52 +535,134 @@ export default function ScrollSequence({
 
   useEffect(() => {
     let cancelled = false;
+    let cancelDeferredPreload: (() => void) | null = null;
 
     framesRef.current = new Array(frameCount);
+    loadedFramesRef.current = new Set();
+    firstFrameReadyRef.current = false;
     currentPositionRef.current = -1;
+    currentFrameRef.current = -1;
     pendingPositionRef.current = 0;
-    setLoadedFrames(0);
     setFirstFrameReady(false);
-    setFramesReady(false);
 
     resizeCanvas();
     lastViewportWidthRef.current = window.innerWidth;
 
-    const loadFrames = async () => {
+    const loadFrameAtIndex = async (index: number) => {
+      if (
+        index < 0 ||
+        index >= frameCount ||
+        cancelled ||
+        loadedFramesRef.current.has(index)
+      ) {
+        return;
+      }
+
       try {
-        const firstFrame = await preloadFrame(frameSources[0]);
+        const image = await preloadFrame(
+          frameSources[index],
+          index < PRIORITY_FRAME_COUNT
+        );
 
         if (cancelled) {
           return;
         }
 
-        framesRef.current[0] = firstFrame;
-        setLoadedFrames(1);
-        setFirstFrameReady(true);
-        render(0, true);
+        framesRef.current[index] = image;
+        loadedFramesRef.current.add(index);
 
-        await Promise.all(
-          frameSources.slice(1).map(async (src, offset) => {
-            const image = await preloadFrame(src);
+        if (index === 0) {
+          const requestedPosition = pendingPositionRef.current;
+          const canvas = canvasRef.current;
 
-            if (!cancelled) {
-              framesRef.current[offset + 1] = image;
-              setLoadedFrames((count) => Math.min(frameCount, count + 1));
-            }
-          })
-        );
+          firstFrameReadyRef.current = true;
 
-        if (!cancelled) {
-          setFramesReady(true);
+          if (canvas) {
+            drawFrame(canvas, image, fitMode);
+            currentFrameRef.current = 0;
+            currentPositionRef.current = 0;
+          }
+
+          setFirstFrameReady(true);
+          render(requestedPosition, true);
+          return;
         }
+
+        render(pendingPositionRef.current, true);
       } catch {
-        if (!cancelled) {
-          setFramesReady(false);
-        }
+        // Missing frames should never surface as UI; the canvas keeps using the nearest decoded frame.
       }
     };
 
-    loadFrames();
+    const preloadRemainingFrames = () => {
+      Array.from({ length: frameCount }, (_, index) => index)
+        .filter((index) => index >= PRIORITY_FRAME_COUNT)
+        .forEach((index) => {
+          void loadFrameAtIndex(index);
+        });
+    };
+
+    const deferRemainingPreload = () => {
+      const idleWindow = window as unknown as {
+        cancelIdleCallback?: (handle: number) => void;
+        requestIdleCallback?: (callback: () => void) => number;
+      };
+      let idleId: number | null = null;
+      let timeoutId: number | null = null;
+      let didStartRemainingPreload = false;
+
+      const startRemainingPreload = () => {
+        if (didStartRemainingPreload) {
+          return;
+        }
+
+        didStartRemainingPreload = true;
+        preloadRemainingFrames();
+      };
+
+      if (
+        typeof idleWindow.requestIdleCallback === "function" &&
+        typeof idleWindow.cancelIdleCallback === "function"
+      ) {
+        idleId = idleWindow.requestIdleCallback(startRemainingPreload);
+      }
+
+      timeoutId = window.setTimeout(startRemainingPreload, 300);
+
+      cancelDeferredPreload = () => {
+        if (idleId !== null) {
+          idleWindow.cancelIdleCallback?.(idleId);
+        }
+
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+      };
+    };
+
+    const loadFrames = async () => {
+      await loadFrameAtIndex(0);
+
+      if (cancelled || !firstFrameReadyRef.current) {
+        return;
+      }
+
+      const priorityFrames = Array.from(
+        { length: Math.min(PRIORITY_FRAME_COUNT, frameCount) },
+        (_, index) => index
+      ).filter((index) => index > 0);
+
+      await Promise.all(priorityFrames.map((index) => loadFrameAtIndex(index)));
+
+      if (cancelled) {
+        return;
+      }
+
+      render(pendingPositionRef.current, true);
+      deferRemainingPreload();
+    };
+
+    void loadFrames();
 
     const handleResize = () => {
       const nextWidth = window.innerWidth;
@@ -574,38 +696,67 @@ export default function ScrollSequence({
 
     return () => {
       cancelled = true;
+      cancelDeferredPreload?.();
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleOrientationChange);
 
       if (orientationResizeTimeoutRef.current !== null) {
         window.clearTimeout(orientationResizeTimeoutRef.current);
       }
-
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
     };
-  }, [frameCount, frameSources, render, resizeCanvas]);
+  }, [fitMode, frameCount, frameSources, render, resizeCanvas]);
 
-  useMotionValueEvent(progress, "change", (latest) => {
-    if (!isReady) {
+  useEffect(() => {
+    const renderCurrentScrollPosition = () => {
+      const wrapper = wrapperRef.current;
+
+      if (!wrapper) {
+        return;
+      }
+
+      const rect = wrapper.getBoundingClientRect();
+      const viewportHeight = getStableViewportHeight();
+      const scrollDistance = Math.max(1, rect.height - viewportHeight);
+      const latest = clamp(-rect.top / scrollDistance);
+      const index = getFramePosition(latest, frameCount);
+
+      render(index);
+    };
+
+    renderCurrentScrollPosition();
+    window.addEventListener("scroll", renderCurrentScrollPosition, {
+      passive: true
+    });
+    window.addEventListener("resize", renderCurrentScrollPosition, {
+      passive: true
+    });
+
+    return () => {
+      window.removeEventListener("scroll", renderCurrentScrollPosition);
+      window.removeEventListener("resize", renderCurrentScrollPosition);
+    };
+  }, [frameCount, render]);
+
+  useAnimationFrame(() => {
+    const wrapper = wrapperRef.current;
+
+    if (!wrapper) {
       return;
     }
 
+    const rect = wrapper.getBoundingClientRect();
+    const viewportHeight = getStableViewportHeight();
+
+    if (rect.top > viewportHeight || rect.bottom < 0) {
+      return;
+    }
+
+    const scrollDistance = Math.max(1, rect.height - viewportHeight);
+    const latest = clamp(-rect.top / scrollDistance);
     const index = getFramePosition(latest, frameCount);
 
     render(index);
   });
-
-  useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-
-    const index = getFramePosition(progress.get(), frameCount);
-
-    render(index, true);
-  }, [frameCount, isReady, progress, render]);
 
   return (
     <section
@@ -616,10 +767,19 @@ export default function ScrollSequence({
       style={{ height: "calc(var(--stable-vh) * 4)" }}
     >
       <div className="relative sticky top-0 h-[var(--stable-vh)] w-full overflow-hidden bg-[#050505]">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-0 bg-center bg-no-repeat transition-opacity duration-500"
+          style={{
+            backgroundImage: `url('${frameSources[0]}')`,
+            backgroundSize: fitMode === "cover" ? "cover" : "contain",
+            opacity: firstFrameReady ? 0 : 1
+          }}
+        />
         <canvas
           ref={canvasRef}
           aria-hidden="true"
-          className={`absolute inset-0 z-0 h-[var(--stable-vh)] w-screen bg-[#050505] transition-opacity duration-700 ${
+          className={`absolute inset-0 z-[1] h-[var(--stable-vh)] w-screen bg-[#050505] transition-opacity duration-700 ${
             firstFrameReady ? "opacity-100" : "opacity-0"
           }`}
         />
@@ -647,19 +807,6 @@ export default function ScrollSequence({
               "linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.78) 28%, rgba(5, 5, 5, 0) 100%)"
           }}
         />
-
-        {!isReady ? (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#050505] px-6 text-center">
-            <div>
-              <p className="font-body text-xs font-medium uppercase tracking-[0.35em] text-white/40">
-                Loading experience
-              </p>
-              <p className="mt-4 font-body text-sm tabular-nums text-white/60">
-                {Math.min(loadProgress, 100)}%
-              </p>
-            </div>
-          </div>
-        ) : null}
 
         {beats.map((beat) => (
           <BeatOverlay

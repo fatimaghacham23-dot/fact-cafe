@@ -3,6 +3,8 @@ import ScrollSequence, { type StoryBeat } from "@/components/ScrollSequence";
 import { FactArcSignature } from "@/components/FactArcSignature";
 import { FluidNav } from "@/components/FluidNav";
 import { HeroTypewriterLine } from "@/components/HeroTypewriterLine";
+import { LiquidGlassPanel } from "@/components/LiquidGlassPanel";
+import { PaymentMethodsVideo } from "@/components/PaymentMethodsVideo";
 import { SiteButton } from "@/components/SiteButton";
 import { GradientBackground } from "@/components/paper-design-shader-background";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
@@ -164,17 +166,17 @@ export default function Page() {
                 ["Payments", "NFC, credit, and debit cards accepted"],
                 ["Parking", "Free street and lot parking available"]
               ].map(([title, body]) => (
-                <div
+                <LiquidGlassPanel
                   key={title}
-                  className="rounded-lg border border-white/10 bg-white/[0.055] p-5 shadow-[0_18px_70px_rgba(0,0,0,0.26)] backdrop-blur-md"
+                  className="rounded-[2rem] px-5 py-5 md:px-6 md:py-6"
                 >
-                  <h3 className="font-body text-xs font-semibold uppercase tracking-[0.28em] text-white/40">
+                  <p className="font-body text-xs font-semibold uppercase tracking-[0.28em] text-white/35">
                     {title}
-                  </h3>
-                  <p className="mt-4 font-body text-sm leading-6 text-white/70">
+                  </p>
+                  <p className="mt-4 font-body text-sm leading-relaxed text-white/75">
                     {body}
                   </p>
-                </div>
+                </LiquidGlassPanel>
               ))}
             </div>
           </div>
@@ -212,10 +214,12 @@ export default function Page() {
         </div>
       </section>
 
+      <PaymentMethodsVideo />
+
       <section
         id="finish"
         aria-labelledby="finish-title"
-        className="relative flex min-h-screen items-center px-6 py-24 sm:px-8"
+        className="relative flex px-6 pt-12 pb-24 sm:px-8 md:min-h-screen md:items-center md:pt-24 md:pb-32"
       >
         <div className="mx-auto grid w-full max-w-6xl gap-12 md:grid-cols-[1fr_0.7fr] md:items-end">
           <div>
