@@ -8,34 +8,33 @@ export function HeroTypewriterLine() {
     <motion.div
       className="
         pointer-events-none
-        absolute
-        bottom-[12%]
-        left-1/2
+        relative
         z-20
+        mt-10
         w-full
         max-w-[92vw]
-        -translate-x-1/2
         px-6
         text-center
         text-base
-        font-body
         font-medium
         leading-tight
         tracking-tight
         text-white/55
 
-        sm:bottom-[13%]
-        sm:text-lg
-
+        md:absolute
         md:bottom-[10%]
+        md:left-1/2
+        md:mt-0
         md:max-w-[720px]
+        md:-translate-x-1/2
+        md:[translate:-50%_0]
         md:text-xl
 
         lg:bottom-[9%]
         lg:text-2xl
       "
-      initial={{ opacity: 0, x: "-50%", y: 18, filter: "blur(10px)" }}
-      animate={{ opacity: 1, x: "-50%", y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{
         duration: 1,
         delay: 1.1,

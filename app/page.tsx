@@ -142,8 +142,8 @@ export default function Page() {
               Find Us
             </SiteButton>
           </div>
+          <HeroTypewriterLine />
         </div>
-        <HeroTypewriterLine />
       </section>
 
       <ScrollSequence
