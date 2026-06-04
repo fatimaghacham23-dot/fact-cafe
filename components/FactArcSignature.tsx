@@ -2,6 +2,8 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
+import type { CSSProperties } from "react";
+import { cn } from "@/lib/utils";
 
 const ARC_TEXT = "FACT • SPECIALITY COFFEE • KUWAIT • ";
 
@@ -33,13 +35,23 @@ function TextArc({ text }: { text: string }) {
   );
 }
 
-export function FactArcSignature() {
+export function FactArcSignature({
+  className,
+  style
+}: {
+  className?: string;
+  style?: CSSProperties;
+}) {
   const reducedMotion = useReducedMotion();
 
   return (
     <motion.div
       aria-hidden="true"
-      className="pointer-events-none absolute left-2 top-[19%] z-20 flex h-32 w-32 items-center justify-center opacity-80 sm:left-4 sm:top-[18%] sm:h-36 sm:w-36 md:left-[max(1.5rem,calc(50%_-_600px))] md:top-[16%] md:h-40 md:w-40 md:opacity-85 lg:left-[max(1.5rem,calc(50%_-_650px))] lg:top-[14%] lg:h-48 lg:w-48 xl:left-[max(1.5rem,calc(50%_-_690px))] xl:top-[12%] xl:h-52 xl:w-52"
+      className={cn(
+        "pointer-events-none flex items-center justify-center opacity-85",
+        className
+      )}
+      style={style}
       initial={{
         opacity: 0,
         scale: 0.55,

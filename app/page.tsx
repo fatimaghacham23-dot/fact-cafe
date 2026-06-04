@@ -76,12 +76,30 @@ export default function Page() {
       <section
         id="hero"
         aria-labelledby="hero-title"
-        className="relative flex min-h-[var(--stable-vh)] items-center justify-center overflow-hidden bg-[#050505] px-6 py-24 sm:px-8"
+        className="relative min-h-[var(--stable-vh)] overflow-hidden bg-[#050505]"
       >
         <GradientBackground />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-40 bg-gradient-to-t from-[#050505] to-transparent" />
-        <FactArcSignature />
-        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center text-center">
+        <FactArcSignature
+          className="
+            absolute
+            top-[20%]
+            z-20
+            hidden
+            h-48
+            w-48
+            md:flex
+            lg:h-56
+            lg:w-56
+            xl:h-60
+            xl:w-60
+          "
+          style={{ left: "max(2rem, calc(50% - 720px))" }}
+        />
+        <div className="relative z-10 mx-auto flex min-h-[var(--stable-vh)] w-full max-w-6xl flex-col items-center justify-center px-6 py-16 text-center sm:px-8 md:py-24">
+          <div className="relative z-20 mb-8 flex w-full justify-start px-5 pt-20 md:hidden">
+            <FactArcSignature className="relative h-28 w-28 rotate-[-16deg] sm:h-32 sm:w-32" />
+          </div>
           <p className="mb-5 font-body text-xs font-medium uppercase tracking-[0.35em] text-white/40">
             SPECIALITY COFFEE · KUWAIT
           </p>
