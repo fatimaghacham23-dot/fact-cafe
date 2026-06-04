@@ -1,0 +1,23 @@
+
+> matcha-scroll-sequence@0.1.0 dev
+> next dev -p 3001
+
+  ▲ Next.js 14.2.23
+  - Local:        http://localhost:3001
+
+ ✓ Starting...
+ ✓ Ready in 1940ms
+ ○ Compiling / ...
+ ✓ Compiled / in 3.8s (1158 modules)
+ GET / 200 in 4075ms
+ ✓ Compiled in 1564ms (593 modules)
+ ✓ Compiled in 183ms (593 modules)
+ ✓ Compiled in 169ms (593 modules)
+ ✓ Compiled in 611ms (597 modules)
+ ✓ Compiled in 1135ms (597 modules)
+ ✓ Compiled in 779ms (597 modules)
+ ✓ Compiled in 505ms (597 modules)
+ ✓ Compiled in 505ms (597 modules)
+ ✓ Compiled in 679ms (597 modules)
+ ✓ Compiled in 1909ms (597 modules)
+ ✓ Compiled in 926ms (597 modules)

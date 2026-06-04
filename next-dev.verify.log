@@ -1,0 +1,37 @@
+
+> matcha-scroll-sequence@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.23
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 1801ms
+ ○ Compiling / ...
+ ✓ Compiled / in 4.5s (1286 modules)
+ GET / 200 in 4848ms
+ GET / 200 in 48ms
+ GET / 200 in 31ms
+ ✓ Compiled in 572ms (1286 modules)
+ GET / 200 in 121ms
+ GET / 200 in 66ms
+ GET / 200 in 44ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 670ms (1273 modules)
+ GET /_next/static/css/d26e9d0ff62e9c7b.css 404 in 916ms
+ GET /_next/static/chunks/webpack-67f105c10564e92d.js 404 in 889ms
+ GET /_next/static/chunks/117-d17cc7abaa9e39e1.js 404 in 879ms
+ GET /_next/static/chunks/fd9d1056-6922f449a204c2cc.js 404 in 884ms
+ GET /_next/static/chunks/main-app-7fbabbe520c69d89.js 404 in 877ms
+ GET /_next/static/chunks/455-856f021233b699f9.js 404 in 878ms
+ GET /_next/static/chunks/app/page-aef8dcd632ac2ec4.js 404 in 47ms
+ GET / 200 in 130ms
+ GET / 200 in 47ms
+ GET / 200 in 76ms
+ ✓ Compiled in 288ms (648 modules)
+ ✓ Compiled in 197ms (648 modules)
+ ✓ Compiled in 188ms (648 modules)
+ ✓ Compiled in 1553ms (1286 modules)
+ ✓ Compiled in 518ms (1286 modules)
+ GET / 200 in 110ms
+ GET / 200 in 69ms
