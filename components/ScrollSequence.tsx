@@ -801,11 +801,35 @@ export default function ScrollSequence({
           }}
         />
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[24vh] sm:h-36"
-          style={{
-            background:
-              "linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.78) 28%, rgba(5, 5, 5, 0) 100%)"
-          }}
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            bottom-0
+            z-10
+            h-48
+            bg-gradient-to-t
+            from-[#050505]
+            via-[#050505]/90
+            to-transparent
+
+            md:h-56
+            md:via-[#050505]/80
+          "
+          aria-hidden="true"
+        />
+        <div
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            bottom-0
+            z-10
+            h-24
+            bg-[#050505]
+            blur-2xl
+          "
+          aria-hidden="true"
         />
 
         {beats.map((beat) => (
