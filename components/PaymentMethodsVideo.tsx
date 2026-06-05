@@ -5,7 +5,10 @@ import { useInViewport } from "@/lib/use-in-viewport";
 
 export function PaymentMethodsVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { ref, isInView } = useInViewport<HTMLElement>();
+  const { ref, isInView } = useInViewport<HTMLElement>({
+    rootMargin: "200px",
+    threshold: 0.01
+  });
 
   useEffect(() => {
     const video = videoRef.current;

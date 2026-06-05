@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { isMobilePerformanceDevice } from "@/lib/performance";
 import { cn } from "@/lib/utils";
 
 export function LiquidGlassPanel({
@@ -13,6 +14,11 @@ export function LiquidGlassPanel({
 }) {
   const id = React.useId();
   const filterId = `liquid-glass-panel-${id.replace(/:/g, "")}`;
+  const [useExpensiveFilter, setUseExpensiveFilter] = React.useState(false);
+
+  React.useEffect(() => {
+    setUseExpensiveFilter(!isMobilePerformanceDevice());
+  }, []);
 
   return (
     <div
@@ -33,7 +39,11 @@ export function LiquidGlassPanel({
 
       <div
         className="absolute inset-0 isolate -z-10 h-full w-full overflow-hidden rounded-full bg-white/[0.035] backdrop-blur-md"
-        style={{ backdropFilter: `url("#${filterId}") blur(14px)` }}
+        style={{
+          backdropFilter: useExpensiveFilter
+            ? `url("#${filterId}") blur(14px)`
+            : "blur(14px)"
+        }}
       />
 
       <div className="pointer-events-none absolute inset-0 rounded-full border border-white/15" />
@@ -42,45 +52,47 @@ export function LiquidGlassPanel({
 
       <div className="relative z-10">{children}</div>
 
-      <svg className="hidden">
-        <defs>
-          <filter
-            id={filterId}
-            x="0%"
-            y="0%"
-            width="100%"
-            height="100%"
-            colorInterpolationFilters="sRGB"
-          >
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.05 0.05"
-              numOctaves="1"
-              seed="1"
-              result="turbulence"
-            />
-            <feGaussianBlur
-              in="turbulence"
-              stdDeviation="2"
-              result="blurredNoise"
-            />
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="blurredNoise"
-              scale="50"
-              xChannelSelector="R"
-              yChannelSelector="B"
-              result="displaced"
-            />
-            <feGaussianBlur
-              in="displaced"
-              stdDeviation="3"
-              result="finalBlur"
-            />
-            <feComposite in="finalBlur" in2="finalBlur" operator="over" />
-          </filter>
-        </defs>
-      </svg>
+      {useExpensiveFilter ? (
+        <svg className="hidden">
+          <defs>
+            <filter
+              id={filterId}
+              x="0%"
+              y="0%"
+              width="100%"
+              height="100%"
+              colorInterpolationFilters="sRGB"
+            >
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.05 0.05"
+                numOctaves="1"
+                seed="1"
+                result="turbulence"
+              />
+              <feGaussianBlur
+                in="turbulence"
+                stdDeviation="2"
+                result="blurredNoise"
+              />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="blurredNoise"
+                scale="50"
+                xChannelSelector="R"
+                yChannelSelector="B"
+                result="displaced"
+              />
+              <feGaussianBlur
+                in="displaced"
+                stdDeviation="3"
+                result="finalBlur"
+              />
+              <feComposite in="finalBlur" in2="finalBlur" operator="over" />
+            </filter>
+          </defs>
+        </svg>
+      ) : null}
     </div>
   );
 }
