@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
+import { useInViewport } from "@/lib/use-in-viewport";
 
 const ARC_TEXT = "FACT • SPECIALITY COFFEE • KUWAIT • ";
 
@@ -43,9 +44,11 @@ export function FactArcSignature({
   style?: CSSProperties;
 }) {
   const reducedMotion = useReducedMotion();
+  const { ref, isInView } = useInViewport<HTMLDivElement>();
 
   return (
     <motion.div
+      ref={ref}
       aria-hidden="true"
       className={cn(
         "pointer-events-none flex items-center justify-center opacity-85",
@@ -76,7 +79,7 @@ export function FactArcSignature({
     >
       <motion.div
         className="absolute inset-0 rounded-full opacity-80"
-        animate={reducedMotion ? undefined : { rotate: 360 }}
+        animate={reducedMotion || !isInView ? undefined : { rotate: 360 }}
         transition={{
           repeat: Infinity,
           duration: 24,

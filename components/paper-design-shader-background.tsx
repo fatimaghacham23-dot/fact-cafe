@@ -2,23 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { GrainGradient } from "@paper-design/shaders-react";
+import { useInViewport } from "@/lib/use-in-viewport";
 
 export function GradientBackground() {
   const [useShader, setUseShader] = useState(false);
+  const { ref, isInView } = useInViewport<HTMLDivElement>();
 
   useEffect(() => {
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
-    const isMobile = window.innerWidth < 768;
 
-    // Desktop gets animated shader. Mobile gets lighter animated CSS fallback.
-    setUseShader(!reduceMotion && !isMobile);
+    setUseShader(!reduceMotion);
   }, []);
 
   if (!useShader) {
     return (
       <div
+        ref={ref}
         className="
           pointer-events-none
           absolute
@@ -38,6 +39,7 @@ export function GradientBackground() {
             blur-xl
             will-change-transform
           "
+          style={{ animationPlayState: isInView ? "running" : "paused" }}
         />
         <div className="absolute inset-0 bg-black/18" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.12)_45%,rgba(0,0,0,0.72)_100%)]" />
@@ -47,6 +49,7 @@ export function GradientBackground() {
 
   return (
     <div
+      ref={ref}
       className="
         pointer-events-none
         absolute
@@ -60,15 +63,15 @@ export function GradientBackground() {
       <GrainGradient
         style={{ height: "100%", width: "100%" }}
         colorBack="hsl(0, 0%, 0%)"
-        softness={0.74}
-        intensity={0.48}
-        noise={0.08}
+        softness={0.72}
+        intensity={0.42}
+        noise={0.06}
         shape="corners"
         offsetX={0}
         offsetY={0}
         scale={1.08}
         rotation={0}
-        speed={0.75}
+        speed={isInView ? 0.45 : 0}
         colors={[
           "hsl(38, 90%, 34%)",
           "hsl(82, 35%, 25%)",
@@ -76,8 +79,8 @@ export function GradientBackground() {
         ]}
       />
 
-      <div className="absolute inset-0 bg-black/32" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.25)_48%,rgba(0,0,0,0.84)_100%)]" />
+      <div className="absolute inset-0 bg-black/28" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.2)_48%,rgba(0,0,0,0.8)_100%)]" />
     </div>
   );
 }

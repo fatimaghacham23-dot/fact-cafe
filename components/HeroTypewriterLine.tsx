@@ -2,10 +2,14 @@
 
 import { motion } from "framer-motion";
 import { Typewriter } from "@/components/ui/typewriter";
+import { useInViewport } from "@/lib/use-in-viewport";
 
 export function HeroTypewriterLine() {
+  const { ref, isInView } = useInViewport<HTMLDivElement>();
+
   return (
     <motion.div
+      ref={ref}
       className="
         pointer-events-none
         relative
@@ -46,6 +50,7 @@ export function HeroTypewriterLine() {
         <span className="text-xl leading-none md:text-2xl">🌞</span>
 
         <Typewriter
+          active={isInView}
           text={[
             "specialty coffee.",
             "quiet mornings.",
